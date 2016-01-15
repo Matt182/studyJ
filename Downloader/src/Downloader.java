@@ -31,6 +31,8 @@ public class Downloader extends JPanel implements Runnable {
 
     private Thread thisThread;
 
+    public static ThreadGroup downloadGroup = new ThreadGroup("Download threads");
+
     public Downloader(URL url, OutputStream os) throws IOException {
         downloadURL = url;
         outputStream = os;
@@ -42,12 +44,27 @@ public class Downloader extends JPanel implements Runnable {
         }
         inputStream = new BufferedInputStream(urlConnection.getInputStream());
         buffer = new byte[BUFFER_SIZE];
-        thisThread = new Thread(this);
+        thisThread = new Thread(downloadGroup, this);
 
         buildLayout();
         stopped = false;
         sleepSheduler = false;
         suspended = false;
+    }
+
+    public static void cancelAllAndWait() {
+        int count = downloadGroup.activeCount();
+        Thread[] threads = new Thread[count];
+        count = downloadGroup.enumerate(threads);
+        downloadGroup.interrupt();
+
+        for (int i = 0; i < count; i++) {
+            try {
+                threads[i].join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public void startDownload(){
@@ -187,7 +204,7 @@ public class Downloader extends JPanel implements Runnable {
             inputStream.close();
             File file = new File("C:\\Users\\matt\\Desktop\\studyJ\\zzzz.jpg");
             file.delete();
-            System.exit(1);
+
         } catch (IOException e) {
 
         }
